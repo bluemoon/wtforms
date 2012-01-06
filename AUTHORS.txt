@@ -7,9 +7,11 @@ Lead Developers:
 
 Contributors:
 
-- Ali Aafshar
 - Adam Lowry
+- Ali Aafshar
+- Andreas Madsack
 - Christopher Grebs
+- Eduardo Schettino
 - Emil Vladev
 - Rodrigo Moraes
 - Sebastian Wiesner

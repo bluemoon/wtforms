@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from unittest import TestCase
-from wtforms.widgets import html_params
+from wtforms.widgets import html_params, Input
 from wtforms.widgets import *
 
 
@@ -14,6 +14,7 @@ class DummyField(object):
 
     _value       = lambda x: x.data
     __unicode__  = lambda x: x.data
+    __str__      = lambda x: x.data
     __call__     = lambda x, **k: x.data
     __iter__     = lambda x: iter(x.data)
     iter_choices = lambda x: iter(x.data)
@@ -41,8 +42,14 @@ class ListWidgetTest(TestCase):
 
 class TableWidgetTest(TestCase):
     def test(self):
-        field = DummyField([DummyField(x, label='l' + x) for x in ['foo', 'bar']], id='hai')
-        self.assertEqual(TableWidget()(field), u'<table id="hai"><tr><th>lfoo</th><td>foo</td></tr><tr><th>lbar</th><td>bar</td></tr></table>')
+        inner_fields = [
+            DummyField('hidden1', type='HiddenField'),
+            DummyField('foo', label='lfoo'),
+            DummyField('bar', label='lbar'),
+            DummyField('hidden2', type='HiddenField'),
+        ]
+        field = DummyField(inner_fields, id='hai')
+        self.assertEqual(TableWidget()(field), u'<table id="hai"><tr><th>lfoo</th><td>hidden1foo</td></tr><tr><th>lbar</th><td>bar</td></tr></table>hidden2')
 
 
 class BasicWidgetsTest(TestCase):
@@ -50,13 +57,19 @@ class BasicWidgetsTest(TestCase):
 
     field = DummyField('foo', name='bar', label='label', id='id') 
 
+    def test_input_type(self):
+        a = Input()
+        self.assertRaises(AttributeError, getattr, a, 'input_type')
+        b = Input(input_type='test')
+        self.assertEqual(b.input_type, 'test')
+
     def test_html_marking(self):
         html = TextInput()(self.field)
         self.assert_(hasattr(html, '__html__'))
         self.assert_(html.__html__() is html)
 
     def test_text_input(self):
-        self.assertEqual(TextInput()(self.field), u'<input id="id" name="bar" type="text" value="foo" />')
+        self.assertEqual(TextInput()(self.field), u'<input id="id" name="bar" type="text" value="foo">')
 
     def test_password_input(self):
         self.assert_(u'type="password"' in PasswordInput()(self.field))
@@ -67,7 +80,7 @@ class BasicWidgetsTest(TestCase):
         self.assert_(u'type="hidden"' in HiddenInput()(self.field))
 
     def test_checkbox_input(self):
-        self.assertEqual(CheckboxInput()(self.field, value='v'), '<input checked="checked" id="id" name="bar" type="checkbox" value="v" />')
+        self.assertEqual(CheckboxInput()(self.field, value='v'), '<input checked id="id" name="bar" type="checkbox" value="v">')
         field2 = DummyField(False)
         self.assert_(u'checked' not in CheckboxInput()(field2))
 
@@ -85,9 +98,9 @@ class SelectTest(TestCase):
 
     def test(self):
         self.assertEqual(Select()(self.field), 
-            u'<select id="" name="f"><option selected="selected" value="foo">lfoo</option><option value="bar">lbar</option></select>')
+            u'<select id="" name="f"><option selected value="foo">lfoo</option><option value="bar">lbar</option></select>')
         self.assertEqual(Select(multiple=True)(self.field), 
-            '<select id="" multiple="multiple" name="f"><option selected="selected" value="foo">lfoo</option><option value="bar">lbar</option></select>')
+            '<select id="" multiple name="f"><option selected value="foo">lfoo</option><option value="bar">lbar</option></select>')
 
 if __name__ == '__main__':
     from unittest import main

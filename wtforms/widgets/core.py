@@ -4,7 +4,7 @@ from cgi import escape
 __all__ = (
     'CheckboxInput', 'FileInput', 'HiddenInput', 'ListWidget', 'PasswordInput',
     'RadioInput', 'Select', 'SubmitInput', 'TableWidget', 'TextArea',
-    'TextInput',
+    'TextInput', 'Option'
 )
 
 
@@ -24,8 +24,12 @@ def html_params(**kwargs):
     for k,v in sorted(kwargs.iteritems()):
         if k in ('class_', 'class__', 'for_'):
             k = k[:-1]
-        params.append(u'%s="%s"' % (unicode(k), escape(unicode(v), quote=True)))
+        if v is True:
+            params.append(k)
+        else:
+            params.append(u'%s="%s"' % (unicode(k), escape(unicode(v), quote=True)))
     return u' '.join(params)
+
 
 class HTMLString(unicode):
     def __html__(self):
@@ -103,6 +107,8 @@ class Input(object):
     By default, the `_value()` method will be called upon the associated field
     to provide the ``value=`` HTML attribute.
     """
+    html_params = staticmethod(html_params)
+
     def __init__(self, input_type=None):
         if input_type is not None:
             self.input_type = input_type
@@ -112,7 +118,7 @@ class Input(object):
         kwargs.setdefault('type', self.input_type)
         if 'value' not in kwargs:
             kwargs['value'] = field._value()
-        return HTMLString(u'<input %s />' % html_params(name=field.name, **kwargs))
+        return HTMLString(u'<input %s>' % self.html_params(name=field.name, **kwargs))
 
 
 class TextInput(Input):
@@ -152,15 +158,13 @@ class CheckboxInput(Input):
     """
     Render a checkbox.
 
-    The ``value=`` HTML attribute by default is 'y' unless otherwise specified
-    by `value=` at rendering. The ``checked`` HTML attribute is set if the field's
-    data is a non-false value.
+    The ``checked`` HTML attribute is set if the field's data is a non-false value.
     """
     input_type = 'checkbox'
 
     def __call__(self, field, **kwargs):
         if getattr(field, 'checked', field.data):
-            kwargs['checked'] = u'checked'
+            kwargs['checked'] = True
         return super(CheckboxInput, self).__call__(field, **kwargs)
 
 
@@ -175,15 +179,21 @@ class RadioInput(Input):
 
     def __call__(self, field, **kwargs):
         if field.checked:
-            kwargs['checked'] = u'checked'
+            kwargs['checked'] = True 
         return super(RadioInput, self).__call__(field, **kwargs)
 
 
-class FileInput(Input):
+class FileInput(object):
     """
     Renders a file input chooser field.
     """
-    input_type = 'file'
+
+    def __call__(self, field, **kwargs):
+        kwargs.setdefault('id', field.id)
+        value = field._value()
+        if value:
+            kwargs.setdefault('value', value)
+        return HTMLString(u'<input %s>' % html_params(name=field.name, type=u'file', **kwargs))
 
 
 class SubmitInput(Input):
@@ -210,6 +220,7 @@ class TextArea(object):
         kwargs.setdefault('id', field.id)
         return HTMLString(u'<textarea %s>%s</textarea>' % (html_params(name=field.name, **kwargs), escape(unicode(field._value()))))
 
+
 class Select(object):
     """
     Renders a select field.
@@ -218,7 +229,7 @@ class Select(object):
     rendering to make the field useful.
 
     The field must provide an `iter_choices()` method which the widget will
-    call on rendering; this method must yield tuples of 
+    call on rendering; this method must yield tuples of
     `(value, label, selected)`.
     """
     def __init__(self, multiple=False):
@@ -227,7 +238,7 @@ class Select(object):
     def __call__(self, field, **kwargs):
         kwargs.setdefault('id', field.id)
         if self.multiple:
-            kwargs['multiple'] = 'multiple'
+            kwargs['multiple'] = True
         html = [u'<select %s>' % html_params(name=field.name, **kwargs)]
         for val, label, selected in field.iter_choices():
             html.append(self.render_option(val, label, selected))
@@ -235,20 +246,20 @@ class Select(object):
         return HTMLString(u''.join(html))
 
     @classmethod
-    def render_option(cls, value, label, selected):
-        options = {'value': value}
+    def render_option(cls, value, label, selected, **kwargs):
+        options = dict(kwargs, value=value)
         if selected:
-            options['selected'] = u'selected'
+            options['selected'] = True
         return HTMLString(u'<option %s>%s</option>' % (html_params(**options), escape(unicode(label))))
 
 
 class Option(object):
     """
-    Renders the individual option from a select field. 
-    
+    Renders the individual option from a select field.
+
     This is just a convenience for various custom rendering situations, and an
     option by itself does not constitute an entire field.
     """
     def __call__(self, field, **kwargs):
-        return Select.render_option(field._value(), field.label.text, field.checked)
+        return Select.render_option(field._value(), field.label.text, field.checked, **kwargs)
 

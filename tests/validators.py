@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 from unittest import TestCase
-from wtforms.validators import StopValidation, ValidationError, email, equal_to, ip_address, length, required, optional, regexp, url, NumberRange, AnyOf, NoneOf
+from wtforms.validators import (
+    StopValidation, ValidationError, email, equal_to,
+    ip_address, length, required, optional, regexp,
+    url, NumberRange, AnyOf, NoneOf, mac_address, UUID
+)
+from functools import partial
 
 class DummyTranslations(object):
     def gettext(self, string):
@@ -64,6 +69,33 @@ class ValidatorsTest(TestCase):
         self.assertRaises(ValidationError, ip_address(), self.form, DummyField('abc.0.0.1'))
         self.assertRaises(ValidationError, ip_address(), self.form, DummyField('1278.0.0.1'))
         self.assertRaises(ValidationError, ip_address(), self.form, DummyField('127.0.0.abc'))
+
+    def test_mac_address(self):
+        self.assertEqual(mac_address()(self.form, 
+                                       DummyField('01:23:45:67:ab:CD')), None)
+
+        check_fail = partial(
+            self.assertRaises, ValidationError, 
+            mac_address(), self.form
+        )
+
+        check_fail(DummyField('00:00:00:00:00'))
+        check_fail(DummyField('01:23:45:67:89:'))
+        check_fail(DummyField('01:23:45:67:89:gh'))
+        check_fail(DummyField('123:23:45:67:89:00'))
+
+
+    def test_uuid(self):
+        self.assertEqual(UUID()(self.form, DummyField(
+                    '2bc1c94f-0deb-43e9-92a1-4775189ec9f8')), None)
+        self.assertRaises(ValidationError, UUID(), self.form, 
+                          DummyField('2bc1c94f-deb-43e9-92a1-4775189ec9f8'))
+        self.assertRaises(ValidationError, UUID(), self.form, 
+                          DummyField('2bc1c94f-0deb-43e9-92a1-4775189ec9f'))
+        self.assertRaises(ValidationError, UUID(), self.form, 
+                          DummyField('gbc1c94f-0deb-43e9-92a1-4775189ec9f8'))
+        self.assertRaises(ValidationError, UUID(), self.form, 
+                          DummyField('2bc1c94f 0deb-43e9-92a1-4775189ec9f8'))
 
     def test_length(self):
         field = DummyField('foobar')
@@ -137,6 +169,15 @@ class ValidatorsTest(TestCase):
         self.assertRaises(ValidationError, v, self.form, DummyField(None))
         self.assertRaises(ValidationError, v, self.form, DummyField(0))
         self.assertRaises(ValidationError, v, self.form, DummyField(12))
+        self.assertRaises(ValidationError, v, self.form, DummyField(-5))
+
+        onlymin = NumberRange(min=5)
+        self.assertEqual(onlymin(self.form, DummyField(500)), None)
+        self.assertRaises(ValidationError, onlymin, self.form, DummyField(4))
+
+        onlymax = NumberRange(max=50)
+        self.assertEqual(onlymax(self.form, DummyField(30)), None)
+        self.assertRaises(ValidationError, onlymax, self.form, DummyField(75))
 
     def test_lazy_proxy(self):
         """Tests that the validators support lazy translation strings for messages."""

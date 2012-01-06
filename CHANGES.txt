@@ -2,6 +2,46 @@ WTForms Changelog
 =================
 
 
+Version 0.6.4dev
+----------------
+Not yet released
+
+- Output HTML5 compact syntax by default.
+
+- Substantial code reorg, cleanup, and test improvements
+
+- Added ext.csrf for a way to implement CSRF protection 
+
+- ext.sqlalchemy:
+  * Support PGInet, MACADDR, and UUID field conversion
+  * Support callable defaults
+
+Version 0.6.3
+-------------
+Released April 24, 2011
+
+- Documentation: Substantial documentation improvements, including adding
+  Crash Course as a sphinx document.
+
+- ext.django: QuerySetSelectField (and ModelSelectField) now accept get_label
+  similar to sqlalchemy equivalents.
+
+- ext.appengine:
+ * model_form fixes: FloatField(#50), TimeField, DateTimeField(#55)
+ * ReferencePropertyField: now properly stores model object, not key. (#48)
+
+
+Version 0.6.2
+-------------
+Released January 22, 2011
+
+- Bug Fixes:
+ * ext.appengine: various field fixes (#34, #48), model_form changes (#41)
+ * Fix issue in Optional with non-string input.
+ * Make numeric fields more consistent.
+
+- Tests: Improve test coverage substantially.
+
 Version 0.6.1
 -------------
 Released September 17th, 2010
