@@ -98,6 +98,51 @@ class Length(object):
             raise ValidationError(self.message % dict(min=self.min, max=self.max))
 
 
+class ComplexDate(object):
+    def __init__(self, future=True, message=None):
+        self.future = future
+        self.message = message
+        
+    def __call__(self, form, field):
+        from dateutil.parser import parse
+        import datetime
+        
+        try:
+            date = parse(request.args.get('date'))
+            if self.future and date <= datetime.datetime.now():
+                self.message = 'Please enter a date in the future'
+        except ValueError:
+            self.message = 'Please enter a valid date'
+        if self.message:
+            raise ValidationError(self.message)
+
+
+@app.route('/_ajax/validate_date_future')
+def validate_date_future():
+    try:
+        date = parse(request.args.get('date'))
+    except ValueError:
+        return jsonify(error='Please enter a valid date', date=False)
+    if date <= datetime.datetime.now():
+        return jsonify(error='Please enter a date in the future', date=False)
+    date = date.isoformat()
+    return jsonify(date=date)
+
+        l = field.data and len(field.data) or 0
+        if l < self.min or self.max != -1 and l > self.max:
+            if self.message is None:
+                if self.max == -1:
+                    self.message = field.ngettext(u'Field must be at least %(min)d character long.',
+                                                  u'Field must be at least %(min)d characters long.', self.min)
+                elif self.min == -1:
+                    self.message = field.ngettext(u'Field cannot be longer than %(max)d character.',
+                                                  u'Field cannot be longer than %(max)d characters.', self.max)
+                else:
+                    self.message = field.gettext(u'Field must be between %(min)d and %(max)d characters long.')
+
+            raise ValidationError(self.message % dict(min=self.min, max=self.max))
+
+
 class NumberRange(object):
     """
     Validates that a number is of a minimum and/or maximum value, inclusive.
@@ -358,6 +403,7 @@ ip_address = IPAddress
 mac_address = MacAddress
 length = Length
 number_range = NumberRange
+complex_date = ComplexDate
 optional = Optional
 required = Required
 regexp = Regexp
