@@ -117,32 +117,6 @@ class ComplexDate(object):
             raise ValidationError(self.message)
 
 
-@app.route('/_ajax/validate_date_future')
-def validate_date_future():
-    try:
-        date = parse(request.args.get('date'))
-    except ValueError:
-        return jsonify(error='Please enter a valid date', date=False)
-    if date <= datetime.datetime.now():
-        return jsonify(error='Please enter a date in the future', date=False)
-    date = date.isoformat()
-    return jsonify(date=date)
-
-        l = field.data and len(field.data) or 0
-        if l < self.min or self.max != -1 and l > self.max:
-            if self.message is None:
-                if self.max == -1:
-                    self.message = field.ngettext(u'Field must be at least %(min)d character long.',
-                                                  u'Field must be at least %(min)d characters long.', self.min)
-                elif self.min == -1:
-                    self.message = field.ngettext(u'Field cannot be longer than %(max)d character.',
-                                                  u'Field cannot be longer than %(max)d characters.', self.max)
-                else:
-                    self.message = field.gettext(u'Field must be between %(min)d and %(max)d characters long.')
-
-            raise ValidationError(self.message % dict(min=self.min, max=self.max))
-
-
 class NumberRange(object):
     """
     Validates that a number is of a minimum and/or maximum value, inclusive.
